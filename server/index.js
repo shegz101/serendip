@@ -14,7 +14,10 @@ const PORT = process.env.PORT || 3001;
 const allowedOrigins = process.env.CLIENT_ORIGIN
   ? process.env.CLIENT_ORIGIN.split(',').map((s) => s.trim())
   : ['http://localhost:5173', 'http://localhost:4173'];
-app.use(cors({ origin: allowedOrigins }));
+
+const corsOptions = { origin: allowedOrigins, credentials: true };
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // handle preflight for every route
 app.use(express.json());
 
 app.use('/api/events', eventsRouter);
