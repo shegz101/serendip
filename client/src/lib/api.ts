@@ -1,6 +1,8 @@
 import type { Match, MatchResponse, DashboardStats, Attendee, SerendipEvent, Message } from './types';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '';
+// Ensure the base URL is always absolute — guards against missing https:// prefix
+const rawBase = (import.meta.env.VITE_API_BASE_URL ?? '').trim().replace(/\/$/, '');
+const API_BASE = rawBase && !rawBase.startsWith('http') ? `https://${rawBase}` : rawBase;
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}/api${path}`, {
