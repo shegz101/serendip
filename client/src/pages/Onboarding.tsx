@@ -7,6 +7,8 @@ import { saveSession } from '../lib/session';
 import { api } from '../lib/api';
 import type { Role, Intent, SerendipEvent } from '../lib/types';
 
+type TagStatus = 'idle' | 'checking' | 'available' | 'taken' | 'short';
+
 const ROLES: Role[] = ['Founder', 'Engineer', 'Designer', 'Recruiter', 'VC', 'Speaker', 'Other'];
 const INTENTS: Intent[] = [
   'Hiring', 'Job hunting', 'Find a co-founder', 'Raise money',
@@ -73,10 +75,19 @@ export default function Onboarding() {
     need_text: '',
     tag: '',
   });
-  type TagStatus = 'idle' | 'checking' | 'available' | 'taken' | 'short';
-  const [tagStatus, setTagStatus] = useState<TagStatus>('idle');
-  const tagTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  // Stores the last resolved check { tag, status } — async callback only
+  const [checkResult, setCheckResult] = useState<{ tag: string; status: 'available' | 'taken' } | null>(null);
+  const tagTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const tagManuallyEdited = useRef(false);
+
+  // Derive tag status during render — no synchronous setState in effects
+  const tagStatus: TagStatus = (() => {
+    if (form.tag.length === 0) return 'idle';
+    if (form.tag.length < 3) return 'short';
+    if (!selectedEvent) return 'idle';
+    if (!checkResult || checkResult.tag !== form.tag) return 'checking';
+    return checkResult.status;
+  })();
 
   // Auto-derive @tag from name until user edits it manually
   useEffect(() => {
@@ -86,17 +97,17 @@ export default function Onboarding() {
     }
   }, [form.name]);
 
-  // Debounced availability check
+  // Debounced async availability check — setState only inside async callback
   useEffect(() => {
     clearTimeout(tagTimerRef.current);
-    if (form.tag.length < 3) { setTagStatus(form.tag.length > 0 ? 'short' : 'idle'); return; }
-    if (!selectedEvent) { setTagStatus('idle'); return; }
-    setTagStatus('checking');
+    if (form.tag.length < 3 || !selectedEvent) return;
+    const tag = form.tag;
+    const eventId = selectedEvent.id;
     tagTimerRef.current = setTimeout(async () => {
       try {
-        const res = await api.checkTag(`@${form.tag}`, selectedEvent.id);
-        setTagStatus(res.available ? 'available' : 'taken');
-      } catch { setTagStatus('idle'); }
+        const res = await api.checkTag(`@${tag}`, eventId);
+        setCheckResult({ tag, status: res.available ? 'available' : 'taken' });
+      } catch { /* leave as 'checking' until next successful call */ }
     }, 500);
     return () => clearTimeout(tagTimerRef.current);
   }, [form.tag, selectedEvent]);
