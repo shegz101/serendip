@@ -1,0 +1,97 @@
+@import '@progress/kendo-theme-default/dist/all.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --kendo-color-primary: #6B3EE8;
+    --kendo-color-primary-hover: #5A2FCC;
+  }
+
+  * { box-sizing: border-box; }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-ink text-white font-sans;
+    min-height: 100vh;
+    margin: 0;
+  }
+
+  #root {
+    min-height: 100vh;
+  }
+
+  /* Kendo dark overrides */
+  .k-card { background: transparent; border: none; }
+
+  .k-button-solid-primary {
+    background-color: #6B3EE8 !important;
+    border-color: #6B3EE8 !important;
+  }
+  .k-button-solid-primary:hover {
+    background-color: #5A2FCC !important;
+    border-color: #5A2FCC !important;
+  }
+
+  .k-form-field label, .k-label {
+    @apply text-white/70 font-medium text-sm;
+  }
+
+  .k-input-inner, .k-input-value-text {
+    @apply text-white;
+  }
+
+  .k-input, .k-textarea, .k-dropdownlist, .k-multiselect,
+  .k-picker, .k-combobox {
+    @apply bg-ink-muted border-ink-border text-white rounded-xl;
+    border-color: rgba(255,255,255,0.1) !important;
+    background-color: rgba(255,255,255,0.05) !important;
+    color: white !important;
+  }
+
+  .k-list-container, .k-popup {
+    @apply bg-ink-soft border-ink-border;
+    background-color: #13132a !important;
+    border-color: rgba(255,255,255,0.1) !important;
+  }
+
+  .k-list-item:hover, .k-list-item.k-selected {
+    background-color: rgba(107,62,232,0.25) !important;
+    color: white !important;
+  }
+
+  .k-multiselect-wrap .k-chip {
+    @apply bg-brand-500/20 text-brand-300 border-brand-500/30;
+  }
+}
+
+@layer components {
+  .glass-card {
+    background: linear-gradient(160deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+    @apply backdrop-blur-md border border-white/[0.07] rounded-2xl;
+  }
+
+  .btn-primary {
+    @apply bg-brand-500 hover:bg-brand-600 text-white font-semibold px-6 py-3 rounded-xl
+           transition-all duration-200 hover:shadow-glow-sm active:scale-[0.98] cursor-pointer border-none;
+  }
+
+  .btn-ghost {
+    @apply border border-white/10 hover:border-brand-400/50 text-white/60 hover:text-white
+           font-medium px-6 py-3 rounded-xl transition-all duration-200 cursor-pointer bg-transparent;
+  }
+
+  .tag {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold
+           bg-brand-500/15 text-brand-300 border border-brand-500/25;
+  }
+
+  .section-label {
+    @apply text-xs font-semibold tracking-widest uppercase text-brand-400;
+  }
+}
