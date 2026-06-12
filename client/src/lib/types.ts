@@ -65,6 +65,14 @@ export interface Match {
   createdAt: string;
 }
 
+export interface Message {
+  id: string;
+  matchId: string;
+  senderId: string;
+  text: string;
+  sentAt: string;
+}
+
 export interface DashboardStats {
   event: SerendipEvent;
   totalAttendees: number;

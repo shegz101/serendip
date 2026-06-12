@@ -4,6 +4,7 @@ import { Loader } from '@progress/kendo-react-indicators';
 import { getSession, clearSession } from '../lib/session';
 import { api } from '../lib/api';
 import MatchCard from '../components/MatchCard/MatchCard';
+import ChatPanel from '../components/ChatPanel/ChatPanel';
 import type { Match } from '../lib/types';
 
 type State = 'loading' | 'match' | 'accepted' | 'no_candidates' | 'exhausted' | 'no_match';
@@ -267,6 +268,17 @@ export default function Matches() {
           </div>
         )}
       </main>
+
+      {/* Floating chat — visible whenever there's an accepted match this session */}
+      {state === 'accepted' && acceptedMatch && them && (
+        <ChatPanel
+          match={acceptedMatch}
+          userId={session.userId}
+          userTag={session.tag}
+          partnerName={them.name}
+          partnerTag={them.tag}
+        />
+      )}
     </div>
   );
 }

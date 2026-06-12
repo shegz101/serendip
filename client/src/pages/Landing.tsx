@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getSession } from '../lib/session';
+import { getSession, saveSession } from '../lib/session';
 import { api } from '../lib/api';
 import type { SerendipEvent } from '../lib/types';
 
@@ -129,9 +129,30 @@ export default function Landing() {
   const [codeError, setCodeError] = useState('');
   const [codeLoading, setCodeLoading] = useState(false);
 
+  const [showRecovery, setShowRecovery] = useState(false);
+  const [recoveryTag, setRecoveryTag] = useState('');
+  const [recoveryCode, setRecoveryCode] = useState('');
+  const [recoveryError, setRecoveryError] = useState('');
+  const [recoveryLoading, setRecoveryLoading] = useState(false);
+
   useEffect(() => {
     api.listEvents().then(setEvents).catch(() => {});
   }, []);
+
+  const handleRecovery = async () => {
+    if (!recoveryTag || !recoveryCode) return;
+    setRecoveryLoading(true);
+    setRecoveryError('');
+    try {
+      const { attendee, event } = await api.recoverSession(recoveryTag, recoveryCode.trim().toUpperCase());
+      saveSession({ userId: attendee.id, eventId: event.id, tag: attendee.tag, name: attendee.name, eventName: event.name });
+      navigate('/matches');
+    } catch {
+      setRecoveryError('Tag or event code not found. Double-check and try again.');
+    } finally {
+      setRecoveryLoading(false);
+    }
+  };
 
   const handleCodeJoin = async () => {
     if (!codeInput.trim()) return;
@@ -245,6 +266,50 @@ export default function Landing() {
             >
               I'm an organiser — create my event →
             </button>
+
+            {/* Session recovery */}
+            <div className="mt-4 max-w-sm">
+              <button
+                onClick={() => { setShowRecovery((r) => !r); setRecoveryError(''); }}
+                className="text-[11px] text-white/25 hover:text-white/50 transition-colors w-full text-center"
+              >
+                {showRecovery ? '↑ Never mind' : 'Already joined? Return to your session →'}
+              </button>
+
+              {showRecovery && (
+                <div className="mt-3 glass-card p-4 space-y-2.5 animate-fade-up">
+                  <p className="text-[11px] text-white/40 leading-relaxed">
+                    Enter your <span className="text-white/60">@tag</span> and event code to pick up where you left off — works on any device.
+                  </p>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/35 text-sm font-mono pointer-events-none">@</span>
+                    <input
+                      value={recoveryTag}
+                      onChange={(e) => { setRecoveryTag(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '')); setRecoveryError(''); }}
+                      onKeyDown={(e) => e.key === 'Enter' && handleRecovery()}
+                      placeholder="yourtag"
+                      className="w-full bg-white/[0.05] border border-white/10 text-white placeholder-white/20 rounded-xl px-3 py-2 pl-7 text-sm font-mono focus:outline-none focus:border-brand-400/50 transition-colors"
+                    />
+                  </div>
+                  <input
+                    value={recoveryCode}
+                    onChange={(e) => { setRecoveryCode(e.target.value.toUpperCase()); setRecoveryError(''); }}
+                    onKeyDown={(e) => e.key === 'Enter' && handleRecovery()}
+                    placeholder="Event code e.g. JSNAT26"
+                    maxLength={8}
+                    className="w-full bg-white/[0.05] border border-white/10 text-white placeholder-white/20 rounded-xl px-3 py-2 text-sm font-mono tracking-widest focus:outline-none focus:border-brand-400/50 transition-colors"
+                  />
+                  {recoveryError && <p className="text-[11px] text-danger">{recoveryError}</p>}
+                  <button
+                    onClick={handleRecovery}
+                    disabled={recoveryLoading || !recoveryTag.trim() || !recoveryCode.trim()}
+                    className="w-full btn-primary py-2 text-sm disabled:opacity-40"
+                  >
+                    {recoveryLoading ? 'Looking up…' : 'Resume session →'}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Right: floating match card */}

@@ -6,6 +6,7 @@ import eventsRouter from './routes/events.js';
 import profilesRouter from './routes/profiles.js';
 import matchesRouter from './routes/matches.js';
 import dashboardRouter from './routes/dashboard.js';
+import chatRouter from './routes/chat.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -20,6 +21,7 @@ app.use('/api/events', eventsRouter);
 app.use('/api/profiles', profilesRouter);
 app.use('/api/matches', matchesRouter);
 app.use('/api/dashboard', dashboardRouter);
+app.use('/api/chat', chatRouter);
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
 // Hourly cleanup of expired events

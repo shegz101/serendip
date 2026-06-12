@@ -1,4 +1,4 @@
-import type { Match, MatchResponse, DashboardStats, Attendee, SerendipEvent } from './types';
+import type { Match, MatchResponse, DashboardStats, Attendee, SerendipEvent, Message } from './types';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '';
 
@@ -40,4 +40,15 @@ export const api = {
 
   // Dashboard
   getDashboard: (eventId: string) => request<DashboardStats>(`/dashboard/${eventId}`),
+
+  // Chat
+  getMessages: (matchId: string) => request<Message[]>(`/chat/${matchId}`),
+  sendMessage: (matchId: string, senderId: string, text: string) =>
+    request<Message>(`/chat/${matchId}`, { method: 'POST', body: JSON.stringify({ senderId, text }) }),
+
+  // Tag & session recovery
+  checkTag: (tag: string, eventId: string) =>
+    request<{ available: boolean }>(`/profiles/check-tag?tag=${encodeURIComponent(tag)}&eventId=${encodeURIComponent(eventId)}`),
+  recoverSession: (tag: string, eventCode: string) =>
+    request<{ attendee: Attendee; event: SerendipEvent }>(`/profiles/recover?tag=${encodeURIComponent(tag)}&eventCode=${encodeURIComponent(eventCode)}`),
 };

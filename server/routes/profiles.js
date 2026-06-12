@@ -33,6 +33,25 @@ router.post('/', (req, res) => {
   res.status(201).json(serializeAttendee(q.getAttendee.get(row.id)));
 });
 
+router.get('/check-tag', (req, res) => {
+  const { tag, eventId } = req.query;
+  if (!tag || !eventId) return res.status(400).json({ error: 'tag and eventId required' });
+  const normalized = String(tag).startsWith('@') ? tag : `@${tag}`;
+  const existing = q.getAttendeeByTag.get(normalized, eventId);
+  res.json({ available: !existing });
+});
+
+router.get('/recover', (req, res) => {
+  const { tag, eventCode } = req.query;
+  if (!tag || !eventCode) return res.status(400).json({ error: 'tag and eventCode required' });
+  const event = q.getEventByCode.get(String(eventCode).toUpperCase());
+  if (!event) return res.status(404).json({ error: 'Event not found' });
+  const normalized = String(tag).startsWith('@') ? tag : `@${tag}`;
+  const attendee = q.getAttendeeByTag.get(normalized, event.id);
+  if (!attendee) return res.status(404).json({ error: 'No attendee found with that tag at this event' });
+  res.json({ attendee: serializeAttendee(attendee), event });
+});
+
 router.get('/event/:eventId', (req, res) => {
   const rows = q.getAttendeesByEvent.all(req.params.eventId);
   res.json(rows.map(serializeAttendee));

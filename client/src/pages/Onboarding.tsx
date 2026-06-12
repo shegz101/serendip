@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DropDownList, MultiSelect } from '@progress/kendo-react-dropdowns';
 import { TextArea, Input } from '@progress/kendo-react-inputs';
 import { Button } from '@progress/kendo-react-buttons';
-import { saveSession, generateTag } from '../lib/session';
+import { saveSession } from '../lib/session';
 import { api } from '../lib/api';
 import type { Role, Intent, SerendipEvent } from '../lib/types';
 
@@ -71,7 +71,35 @@ export default function Onboarding() {
     available_times: [] as string[],
     give_text: '',
     need_text: '',
+    tag: '',
   });
+  type TagStatus = 'idle' | 'checking' | 'available' | 'taken' | 'short';
+  const [tagStatus, setTagStatus] = useState<TagStatus>('idle');
+  const tagTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const tagManuallyEdited = useRef(false);
+
+  // Auto-derive @tag from name until user edits it manually
+  useEffect(() => {
+    if (!tagManuallyEdited.current) {
+      const auto = form.name.toLowerCase().replace(/[^a-z0-9_]/g, '');
+      setForm((f) => ({ ...f, tag: auto }));
+    }
+  }, [form.name]);
+
+  // Debounced availability check
+  useEffect(() => {
+    clearTimeout(tagTimerRef.current);
+    if (form.tag.length < 3) { setTagStatus(form.tag.length > 0 ? 'short' : 'idle'); return; }
+    if (!selectedEvent) { setTagStatus('idle'); return; }
+    setTagStatus('checking');
+    tagTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await api.checkTag(`@${form.tag}`, selectedEvent.id);
+        setTagStatus(res.available ? 'available' : 'taken');
+      } catch { setTagStatus('idle'); }
+    }, 500);
+    return () => clearTimeout(tagTimerRef.current);
+  }, [form.tag, selectedEvent]);
 
   const toggleTime = (slot: string) =>
     setForm((f) => ({
@@ -89,7 +117,7 @@ export default function Onboarding() {
 
   const canProceed = () => {
     if (hasEventStep && step === 0) return !!selectedEvent;
-    if (profileStep === 0) return !!(form.name.trim() && form.role);
+    if (profileStep === 0) return !!(form.name.trim() && form.role && tagStatus === 'available');
     if (profileStep === 1) return form.intent.length > 0;
     if (profileStep === 2) return form.give_text.trim().length >= 5;
     if (profileStep === 3) return form.need_text.trim().length >= 5;
@@ -122,7 +150,7 @@ export default function Onboarding() {
     setLoading(true);
     setError('');
     try {
-      const tag = generateTag(form.name);
+      const tag = `@${form.tag}`;
       const attendee = await api.register({
         event_id: selectedEvent.id,
         name: form.name,
@@ -281,6 +309,34 @@ export default function Onboarding() {
                   style={inputStyle}
                 />
               </div>
+
+              <div>
+                <label className="block text-sm text-white/60 mb-2 font-medium">
+                  Your @tag
+                  <span className="text-white/30 font-normal ml-1.5 text-xs">— how others will find you</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/35 text-sm font-mono pointer-events-none select-none">@</span>
+                  <input
+                    value={form.tag}
+                    onChange={(e) => {
+                      tagManuallyEdited.current = true;
+                      set('tag', e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''));
+                    }}
+                    placeholder="mayachen"
+                    maxLength={24}
+                    style={{ ...inputStyle, paddingLeft: '28px', fontFamily: 'monospace', letterSpacing: '0.04em' }}
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] pointer-events-none">
+                    {tagStatus === 'checking' && <span className="text-white/30 animate-pulse">checking…</span>}
+                    {tagStatus === 'available' && <span className="text-success font-medium">✓ available</span>}
+                    {tagStatus === 'taken' && <span className="text-danger font-medium">✗ taken</span>}
+                    {tagStatus === 'short' && <span className="text-white/25">min 3 chars</span>}
+                  </div>
+                </div>
+                <p className="text-[10px] text-white/20 mt-1.5">Remember this — you'll use it to return to your session later.</p>
+              </div>
+
               <div>
                 <label className="block text-sm text-white/60 mb-2 font-medium">Company / affiliation</label>
                 <Input

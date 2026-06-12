@@ -55,6 +55,14 @@ db.exec(`
     status        TEXT NOT NULL DEFAULT 'pending',
     created_at    TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS messages (
+    id        TEXT PRIMARY KEY,
+    match_id  TEXT NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
+    sender_id TEXT NOT NULL REFERENCES attendees(id) ON DELETE CASCADE,
+    text      TEXT NOT NULL,
+    sent_at   TEXT NOT NULL
+  );
 `);
 
 // ── Migrations (safe to run on every startup) ─────────────────
@@ -134,6 +142,18 @@ export const q = {
   updateMatchStatus: db.prepare('UPDATE matches SET status = ? WHERE id = ?'),
   getAcceptedMatchesByEvent: db.prepare(`SELECT * FROM matches WHERE event_id = ? AND status = 'accepted'`),
   getAllMatchesByEvent: db.prepare('SELECT * FROM matches WHERE event_id = ?'),
+  getAcceptedMatchForUser: db.prepare(`
+    SELECT * FROM matches WHERE event_id = ? AND status = 'accepted'
+    AND (attendee_a_id = ? OR attendee_b_id = ?)
+    ORDER BY created_at DESC LIMIT 1
+  `),
+
+  // Messages
+  getMessagesByMatch: db.prepare('SELECT * FROM messages WHERE match_id = ? ORDER BY sent_at ASC'),
+  insertMessage: db.prepare(`
+    INSERT INTO messages (id, match_id, sender_id, text, sent_at)
+    VALUES (@id, @match_id, @sender_id, @text, @sent_at)
+  `),
 };
 
 // ── Seed demo events ─────────────────────────────────────────
