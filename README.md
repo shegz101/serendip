@@ -4,7 +4,7 @@
 
 Serendip is a real-time, AI-powered networking app built for live events. Attendees answer four questions about who they are, what they can give, and what they need — then the AI matches them with the single best person in the room and tells them exactly why they should meet. No swiping. No scrolling. No awkward cold intros.
 
-Built in 24 hours at the **Progress × GitNation Hackathon, Amsterdam 2026**, using the mandatory KendoReact component library as the core UI backbone.
+**Live at [getserendip.xyz](https://getserendip.xyz)**
 
 ---
 
@@ -61,7 +61,7 @@ The result: meaningful introductions happen in the first ten minutes, not the la
 | Backend | Node.js + Express 4 |
 | Database | SQLite via `better-sqlite3` (WAL mode, FK cascade delete) |
 | AI matching | Backboard AI (GPT-4o proxy) via REST |
-| Dev proxy | Vite `/api` → `localhost:3001` |
+| Hosting | Vercel (frontend) + Railway (backend) |
 
 ---
 
@@ -84,7 +84,7 @@ serendip/
 │   │       ├── api.ts            # Typed API client (all fetch calls)
 │   │       ├── session.ts        # localStorage session helpers
 │   │       └── types.ts          # Shared TypeScript interfaces
-│   └── vite.config.ts            # Dev proxy: /api → :3001
+│   └── vite.config.ts            # Dev proxy: /api → server
 │
 └── server/                   # Express + SQLite backend
     ├── index.js                  # Server bootstrap + hourly cleanup
@@ -184,28 +184,13 @@ cd serendip
 cd server
 cp .env.example .env          # fill in BACKBOARD_API_KEY
 npm install
-npm run dev                    # starts on :3001, auto-seeds 3 demo events
+npm run dev                    # starts on port 3001, auto-seeds 3 demo events
 
 # Frontend (new terminal)
 cd ../client
 cp .env.local.example .env.local    # fill in VITE_KENDO_LICENSE_KEY
 npm install
-npm run dev                    # starts on :5173 with /api proxy
-```
-
-Open `http://localhost:5173`.
-
-### Environment Variables
-
-**`server/.env`**
-```
-BACKBOARD_API_KEY=your_key_here
-PORT=3001
-```
-
-**`client/.env.local`**
-```
-VITE_KENDO_LICENSE_KEY=your_key_here
+npm run dev                    # starts on port 5173 with /api proxy to the server
 ```
 
 ### Demo Events (auto-seeded)
@@ -218,16 +203,13 @@ On first run the server seeds three active events with five attendees each:
 | React Summit 2026 | `REACT26` |
 | Progress × GitNation Hackathon | `HACK26` |
 
-Use any of these codes on the homepage to skip organiser onboarding and test the attendee flow directly.
-
 ### Test Flow
 
-1. Go to `http://localhost:5173`
-2. Enter `JSNAT26` in the join code box → click **Find**
-3. Complete the 4-step onboarding (name, role, intent, give/need)
-4. Land on the Matches page — AI selects your best match with reasoning
-5. Accept → see the `@tag` prompt to find them at the event
-6. Visit `http://localhost:5173/browse` to manually discover other attendees
+1. Enter `JSNAT26` in the join code box on the homepage → click **Find**
+2. Complete the 4-step onboarding (name, role, intent, give/need)
+3. Land on the Matches page — AI selects your best match with reasoning
+4. Accept → see the `@tag` prompt to find them at the event
+5. Visit `/browse` to manually discover other attendees
 
 **Organiser flow:**
 1. Click **Create an event** on the landing page
@@ -238,13 +220,35 @@ Use any of these codes on the homepage to skip organiser onboarding and test the
 ### Build for Production
 
 ```bash
-# Frontend
 cd client && npm run build    # outputs to client/dist/
-
-# Backend — serve client/dist/ as static files and proxy /api to the Express server
-# (add express.static middleware or use a reverse proxy such as nginx/caddy)
 cd server && npm start
 ```
+
+---
+
+## Deployment
+
+### Vercel — Frontend
+
+Set the following environment variables in your Vercel project settings:
+
+| Key | Value |
+|---|---|
+| `VITE_KENDO_LICENSE_KEY` | Your KendoReact license key |
+| `VITE_API_BASE_URL` | Your Railway backend URL (e.g. `https://serendip-server.up.railway.app`) |
+
+Set **Root Directory** to `client` and **Build Command** to `npm run build`. Output directory is `dist`.
+
+### Railway — Backend
+
+Set the following environment variables in your Railway service:
+
+| Key | Value |
+|---|---|
+| `BACKBOARD_API_KEY` | Your Backboard AI API key |
+| `CLIENT_ORIGIN` | `https://getserendip.xyz` |
+
+`PORT` is injected automatically by Railway — do not set it manually.
 
 ---
 
